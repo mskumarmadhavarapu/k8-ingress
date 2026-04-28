@@ -1,0 +1,71 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: app2
+# these labels are replicaset labels
+  labels:
+    project: roboshop
+    purpose: rs-demo
+    tier: frontend
+    component: app2
+  annotations:
+    kubernetes.io/change-cause: "moving to 1.29"
+spec:
+  replicas: 2
+  selector:
+   # using these labels replica set selects the pod
+    matchLabels:
+      project: roboshop
+      purpose: rs-demo
+      tier: frontend
+      component: app2
+  # This is pod definition, pod is subset of replicaset
+  template:
+    metadata:
+      labels:
+        project: roboshop
+        purpose: rs-demo
+        tier: frontend
+        component: app2
+    spec:
+      containers:
+      - name: app2
+        image: mskumarmadhavarapu/app2:1.0.0
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: app2
+spec:
+  selector:
+    # labels are used as selectors
+    project: roboshop
+    component: app2
+  ports:
+    - protocol: TCP
+      port: 80 # service port
+      targetPort: 80 # container port
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: app2
+  annotations:
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTPS": 443}]'
+    alb.ingress.kubernetes.io/certificate-arn: 'arn:aws:acm:us-east-1:520072122793:certificate/0d172a87-ab37-41e5-85c5-05b379240a1b'
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/tags: Environment=dev,Project=roboshop
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/group.name: roboshop
+spec:
+  rules:
+  - host: "app2.mskdaws88s.online"
+    http:
+      paths:
+      - pathType: Prefix
+        path: "/"
+        backend:
+          service:
+            name: app2
+            port:
+              number: 80
